@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 
-from django.conf.global_settings import STATICFILES_DIRS, AUTH_USER_MODEL
+from django.conf.global_settings import STATICFILES_DIRS, AUTH_USER_MODEL, EMAIL_USE_SSL
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -118,3 +118,12 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR,'static')]
+
+# 邮件发送配置
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'    # 导入邮件模块
+EMAIL_HOST = 'smtp.qq.com'                 # 邮箱服务器地址
+EMAIL_PORT = 465                         # 邮箱服务器端口（默认都为25）
+EMAIL_HOST_USER = '294151544@qq.com'       # 发件人（天天生鲜官方邮箱账号）
+EMAIL_HOST_PASSWORD = 'xgtvgsiixiaqcbeg'           # 客户端授权码，非邮箱登录密码
+EMAIL_FROM = 'JOJO生鲜<294151544@qq.com>'   # 打开邮件显示在‘发件人’中的签名
+EMAIL_USE_SSL=True

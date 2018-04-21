@@ -2,14 +2,21 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 # Create your models here.
+from itsdangerous import TimedJSONWebSignatureSerializer
 from tinymce.models import HTMLField
 
+from dailyfresh import settings
 from utils.models import BaseModel
 
 
 class User(BaseModel, AbstractUser):
     """用户模型类"""
-
+    def generate_active_token(self):
+        '''对字典数据加密，返回加密后的结果'''
+        s = TimedJSONWebSignatureSerializer(settings.SECRET_KEY,60*15)
+        datas = s.dumps({'confirm':self.id})
+        #bytes类型转换为字符串类型
+        return datas.decode()
     class Meta(object):
         db_table = 'df_user'
 
