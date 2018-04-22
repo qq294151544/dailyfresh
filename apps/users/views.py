@@ -7,8 +7,10 @@ from django.shortcuts import render
 
 # Create your views here.
 from django.views.generic import View
+from itsdangerous import TimedJSONWebSignatureSerializer, SignatureExpired
 
 from apps.users.models import User
+from celery_tasks.tasks import send_active_email
 from dailyfresh import settings
 
 
@@ -59,10 +61,15 @@ class RegisterView(View):
 
         # todo:发送激活邮件
         token = user.generate_active_token()
-        RegisterView.send_active_email(username,email,token)
+        #同步发送会阻塞
+        # RegisterView.send_active_email(username,email,token)
+
+        #异步调用delay方法
+        send_active_email.delay(username,email,token)
         return  HttpResponse('注册成功，进入登陆界面')
 
     @staticmethod
+
     def send_active_email(username, receiver, token):
         """发送激活邮件"""
         subject = "天天生鲜用户激活"  # 标题, 不能为空，否则报错
@@ -77,3 +84,32 @@ class RegisterView(View):
                         ) % (username, token, token)
         send_mail(subject, message, sender, receivers,
                   html_message=html_message)
+
+
+class ActiveView(View):
+
+    def get(self, request, token: str):
+        """
+        激活注册用户
+        :param request:
+        :param token: 对{'confirm':用户id}字典进行加密后的结果
+        :return:
+        """
+        # 解密数据，得到字典
+        dict_data = None
+        try:
+            s = TimedJSONWebSignatureSerializer(
+                settings.SECRET_KEY, 3600*24)
+            dict_data = s.loads(token.encode())     # type: dict
+        except SignatureExpired:
+            # 激活链接已经过期
+            return HttpResponse('激活链接已经过期')
+
+        # 获取用id
+        user_id = dict_data.get('confirm')
+
+        # 激活用户，修改表字段is_active=True
+        User.objects.filter(id=user_id).update(is_active=True)
+
+        # 响应请求
+        return HttpResponse('激活成功，进入登录界面')
