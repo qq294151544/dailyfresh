@@ -1,9 +1,11 @@
 import re
 
+from django.contrib.auth import authenticate, login, logout
 from django.core.mail import send_mail
+from django.core.urlresolvers import reverse
 from django.db import IntegrityError
 from django.http import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 
 # Create your views here.
 from django.views.generic import View
@@ -112,4 +114,37 @@ class ActiveView(View):
         User.objects.filter(id=user_id).update(is_active=True)
 
         # 响应请求
-        return HttpResponse('激活成功，进入登录界面')
+        return HttpResponse('激活成功，进入登录界面<a style="color: red" href="/index">请点击进入首页</a>')
+        # return render(request,'index.html')
+
+class LoginView(View):
+    def get(self,request):
+        return  render(request,'login.html')
+
+
+    def post(self,request):
+        # return redirect('/index.html')
+        #获取请求参数
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        remember = request.POST.get('remember')
+        #校验合法性
+        if not all([username,password]):
+            return render(request,'login.html',{'ERRMSG':'用户名与密码不能为空'})
+        #业务处理：登陆
+        user = authenticate(username=username,password=password)#django自带模块校验用户名和密码
+        if user is None:
+            return render(request,'login.html',{'ERRMSG':'用户名密码不正确'})
+        if not user.is_active:
+            return render(request,'login.html',{'ERRMSG':'用户未激活'})
+        #登陆成功后，使用session保存用户登陆状态调用的是django的模块进行自动保存
+        #request.session['user_id'] = user.id 获取
+        login(request,user)
+        #响应请求
+        return redirect(reverse('goods:index'))
+
+class LogoutView(View):
+    def get(self,request):
+        #注销用户登陆,直接调用方法实现退出，并会清除session数据
+        logout(request)
+        return redirect(reverse('goods:index'))
