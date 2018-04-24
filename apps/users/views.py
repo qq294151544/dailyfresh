@@ -14,21 +14,22 @@ from itsdangerous import TimedJSONWebSignatureSerializer, SignatureExpired
 from apps.users.models import User
 from celery_tasks.tasks import send_active_email
 from dailyfresh import settings
+from utils.common import LoginRequiredViewMixin
 
 
 def register(request):
-    return render(request,'register.html')
+    return render(request, 'register.html')
+
 
 def do_register(request):
+    return HttpResponse('注册成功，进入登陆界面')
 
-    return  HttpResponse('注册成功，进入登陆界面')
 
 class RegisterView(View):
+    def get(self, request):
+        return render(request, 'register.html')
 
-    def get(self,request):
-        return render(request,'register.html')
-
-    def post(self,request):
+    def post(self, request):
         # 获取post参数
         username = request.POST.get('username')
         password = request.POST.get('password')
@@ -37,7 +38,7 @@ class RegisterView(View):
         allow = request.POST.get('allow')
 
         # 判断参数不能为空
-        if not all([username , password, password2, email, allow]):
+        if not all([username, password, password2, email, allow]):
             return render(request, 'register.html', {'ERRORMSG': '参数不能为空'})
         # 判断输入两次密码一致
         if password != password2:
@@ -63,15 +64,14 @@ class RegisterView(View):
 
         # todo:发送激活邮件
         token = user.generate_active_token()
-        #同步发送会阻塞
+        # 同步发送会阻塞
         # RegisterView.send_active_email(username,email,token)
 
-        #异步调用delay方法
-        send_active_email.delay(username,email,token)
-        return  HttpResponse('注册成功，进入登陆界面')
+        # 异步调用delay方法
+        send_active_email.delay(username, email, token)
+        return HttpResponse('注册成功，进入登陆界面')
 
     @staticmethod
-
     def send_active_email(username, receiver, token):
         """发送激活邮件"""
         subject = "天天生鲜用户激活"  # 标题, 不能为空，否则报错
@@ -89,7 +89,6 @@ class RegisterView(View):
 
 
 class ActiveView(View):
-
     def get(self, request, token: str):
         """
         激活注册用户
@@ -101,8 +100,8 @@ class ActiveView(View):
         dict_data = None
         try:
             s = TimedJSONWebSignatureSerializer(
-                settings.SECRET_KEY, 3600*24)
-            dict_data = s.loads(token.encode())     # type: dict
+                settings.SECRET_KEY, 3600 * 24)
+            dict_data = s.loads(token.encode())  # type: dict
         except SignatureExpired:
             # 激活链接已经过期
             return HttpResponse('激活链接已经过期')
@@ -117,34 +116,71 @@ class ActiveView(View):
         return HttpResponse('激活成功，进入登录界面<a style="color: red" href="/index">请点击进入首页</a>')
         # return render(request,'index.html')
 
+
 class LoginView(View):
-    def get(self,request):
-        return  render(request,'login.html')
+    def get(self, request):
+        return render(request, 'login.html')
 
-
-    def post(self,request):
+    def post(self, request):
         # return redirect('/index.html')
-        #获取请求参数
+        # 获取请求参数
         username = request.POST.get('username')
         password = request.POST.get('password')
         remember = request.POST.get('remember')
-        #校验合法性
-        if not all([username,password]):
-            return render(request,'login.html',{'ERRMSG':'用户名与密码不能为空'})
-        #业务处理：登陆
-        user = authenticate(username=username,password=password)#django自带模块校验用户名和密码
+        # 校验合法性
+        if not all([username, password]):
+            return render(request, 'login.html', {'ERRMSG': '用户名与密码不能为空'})
+        # 业务处理：登陆
+        user = authenticate(username=username, password=password)  # django自带模块校验用户名和密码
         if user is None:
-            return render(request,'login.html',{'ERRMSG':'用户名密码不正确'})
+            return render(request, 'login.html', {'ERRMSG': '用户名密码不正确'})
         if not user.is_active:
-            return render(request,'login.html',{'ERRMSG':'用户未激活'})
-        #登陆成功后，使用session保存用户登陆状态调用的是django的模块进行自动保存
-        #request.session['user_id'] = user.id 获取
-        login(request,user)
-        #响应请求
+            return render(request, 'login.html', {'ERRMSG': '用户未激活'})
+        if remember == 'on':  # 是否勾选记住登陆
+            # 保持登陆状态时间(默认两周）
+            request.session.set_expiry(None)
+        else:
+            # 关闭浏览器登陆状态失效
+            request.session.set_expiry(0)
+        # 登陆成功后，使用session保存用户登陆状态调用的是django的模块进行自动保存
+        # request.session['user_id'] = user.id 获取
+        login(request, user)
+        # 响应请求
         return redirect(reverse('goods:index'))
 
+
 class LogoutView(View):
-    def get(self,request):
-        #注销用户登陆,直接调用方法实现退出，并会清除session数据
+    def get(self, request):
+        # 注销用户登陆,直接调用方法实现退出，并会清除session数据
         logout(request)
         return redirect(reverse('goods:index'))
+
+
+class UserOrderView(View):
+    def get(self, request):
+        context ={
+            'which_page':1
+        }
+        return render(request, 'user_center_order.html',context)
+
+
+class UserInfoView(View):
+    def get(self, request):
+        context = {
+            'which_page': 2
+        }
+        return render(request, 'user_center_info.html',context)
+
+
+class UserAddressView(LoginRequiredViewMixin,View):
+    def get(self, request):
+        context = {
+            'which_page': 3
+        }
+        return render(request, 'user_center_site.html',context)
+
+def address(request):
+    context={
+        'which_page':3
+    }
+    return render(request,'user_center_site.html',context)

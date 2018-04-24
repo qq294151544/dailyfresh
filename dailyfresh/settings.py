@@ -17,7 +17,6 @@ from django.conf.global_settings import STATICFILES_DIRS, AUTH_USER_MODEL, EMAIL
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
 
@@ -29,7 +28,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
 # Application definition
 AUTH_USER_MODEL = 'users.User'
 
@@ -40,16 +38,16 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'tinymce',      #使用第三方的富文本编辑器
-    'apps.users',   #用户模块
-    'apps.goods',   #商品模块
-    'apps.orders',  #订单模块
-    'apps.cart',    #购物车模块
+    'tinymce',  # 使用第三方的富文本编辑器
+    'apps.users',  # 用户模块
+    'apps.goods',  # 商品模块
+    'apps.orders',  # 订单模块
+    'apps.cart',  # 购物车模块
 )
-TINYMCE_DEFAULT_CONFIG={
-    'theme': 'advanced',#丰富样式
-    'width':600,
-    'height':400
+TINYMCE_DEFAULT_CONFIG = {
+    'theme': 'advanced',  # 丰富样式
+    'width': 600,
+    'height': 400
 }
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -83,7 +81,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'dailyfresh.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/1.8/ref/settings/#databases
 
@@ -91,13 +88,12 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'db_df',
-        'USER':'root',
-        'PASSWORD':'mysql',
-        'HOST':'localhost',
-        'PORT':3306,
+        'USER': 'root',
+        'PASSWORD': 'mysql',
+        'HOST': 'localhost',
+        'PORT': 3306,
     }
 }
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.8/topics/i18n/
@@ -112,18 +108,36 @@ USE_L10N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
 
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR,'static')]
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 # 邮件发送配置
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'    # 导入邮件模块
-EMAIL_HOST = 'smtp.qq.com'                 # 邮箱服务器地址
-EMAIL_PORT = 465                         # 邮箱服务器端口（默认都为25）
-EMAIL_HOST_USER = '294151544@qq.com'       # 发件人（天天生鲜官方邮箱账号）
-EMAIL_HOST_PASSWORD = 'xgtvgsiixiaqcbeg'           # 客户端授权码，非邮箱登录密码
-EMAIL_FROM = 'JOJO生鲜<294151544@qq.com>'   # 打开邮件显示在‘发件人’中的签名
-EMAIL_USE_SSL=True
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # 导入邮件模块
+EMAIL_HOST = 'smtp.qq.com'  # 邮箱服务器地址
+EMAIL_PORT = 465  # 邮箱服务器端口（默认都为25）
+EMAIL_HOST_USER = '294151544@qq.com'  # 发件人（天天生鲜官方邮箱账号）
+EMAIL_HOST_PASSWORD = 'xgtvgsiixiaqcbeg'  # 客户端授权码，非邮箱登录密码
+EMAIL_FROM = 'JOJO生鲜<294151544@qq.com>'  # 打开邮件显示在‘发件人’中的签名
+EMAIL_USE_SSL = True
+
+# django项目的缓存配置
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/2",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "PASSWORD": ""
+        }
+    }
+}
+
+# session数据缓存到Redis中
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
+
+# 如果未登陆，则跳转到如下url地址
+LOGIN_URL = '/users/login'
