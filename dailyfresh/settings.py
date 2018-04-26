@@ -141,3 +141,6 @@ SESSION_CACHE_ALIAS = "default"
 
 # 如果未登陆，则跳转到如下url地址
 LOGIN_URL = '/users/login'
+
+# 指定使用自定的义文件储存类
+DEFAULT_FILE_STORAGE = 'utils.fdfs.storage.FdfsStorage'

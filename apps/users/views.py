@@ -9,9 +9,11 @@ from django.shortcuts import render, redirect
 
 # Create your views here.
 from django.views.generic import View
+from django_redis import get_redis_connection
 from itsdangerous import TimedJSONWebSignatureSerializer, SignatureExpired
 
-from apps.users.models import User
+from apps.goods.models import GoodsSKU
+from apps.users.models import User, Address
 from celery_tasks.tasks import send_active_email
 from dailyfresh import settings
 from utils.common import LoginRequiredViewMixin
@@ -136,17 +138,25 @@ class LoginView(View):
             return render(request, 'login.html', {'ERRMSG': '用户名密码不正确'})
         if not user.is_active:
             return render(request, 'login.html', {'ERRMSG': '用户未激活'})
+
+        login(request, user)
+
         if remember == 'on':  # 是否勾选记住登陆
             # 保持登陆状态时间(默认两周）
             request.session.set_expiry(None)
         else:
             # 关闭浏览器登陆状态失效
             request.session.set_expiry(0)
-        # 登陆成功后，使用session保存用户登陆状态调用的是django的模块进行自动保存
-        # request.session['user_id'] = user.id 获取
-        login(request, user)
-        # 响应请求
-        return redirect(reverse('goods:index'))
+            # 登陆成功后，使用session保存用户登陆状态调用的是django的模块进行自动保存
+            # request.session['user_id'] = user.id 获取
+        next = request.GET.get('next')
+        if next:
+            #不为空，跳转到next指向界面:/users/address
+            return redirect(next)
+        else:
+            #为空，则默认跳转到首页
+            # 响应请求
+            return redirect(reverse('goods:index'))
 
 
 class LogoutView(View):
@@ -164,23 +174,77 @@ class UserOrderView(View):
         return render(request, 'user_center_order.html',context)
 
 
-class UserInfoView(View):
+class UserInfoView(LoginRequiredViewMixin,View):
     def get(self, request):
+
+        #todo :从redis中读取当前登陆用户浏览过的商品
+        strict_redis=get_redis_connection()
+        #读取所有商品ID，返回一个列表
+        key = 'history_%s' % request.user.id
+        print(key)
+        sku_ids=strict_redis.lrange(key,0,4)
+
+        print(sku_ids)
+
+        skus = []
+        #根据商品id查询商品对象
+        # skus = GoodsSKU.objects.filter(id__in=sku_ids)
+        for sku_id in sku_ids:
+            sku = GoodsSKU.objects.get(id=int(sku_id))
+            skus.append(sku)
+
+        # 查询登陆用户的最新地址
+        try:
+            address = request.user.address_set.latest('create_time')
+        except:
+            address = None
+
         context = {
-            'which_page': 2
+            'which_page': 2,
+            'address': address,
+            'user':request.user,
+            'skus':skus,
         }
         return render(request, 'user_center_info.html',context)
 
 
 class UserAddressView(LoginRequiredViewMixin,View):
     def get(self, request):
+        # 查询登陆用户的最新地址
+        try:
+            address = Address.objects.filter(user=request.user).order_by('-create_time')[0]
+        except:
+            address = None
+        print(address)
         context = {
-            'which_page': 3
+            'which_page': 3,
+            'address': address
         }
         return render(request, 'user_center_site.html',context)
+    def post(self,request):
+        #获取post请求参数
+        recevier = request.POST.get('receiver')
+        detail = request.POST.get('detail')
+        zip_code = request.POST.get('zip_code')
+        mobile = request.POST.get('mobile')
 
+        #合法性校验
+        if not  all([recevier,detail,mobile]):
+            return render(request,'user_center_site.html',{'ERRMSG':'参数不能为空'})
+        #新增地址
+        Address.objects.create(
+            receiver_name=recevier,
+            receiver_mobile=mobile,
+            detail_addr=detail,
+            zip_code=zip_code,
+            user=request.user
+        )
+
+        #添加数据成功，回到当前界面，刷新数据
+        return redirect(reverse('users:address'))
 def address(request):
     context={
         'which_page':3
     }
     return render(request,'user_center_site.html',context)
+
