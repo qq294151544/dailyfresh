@@ -190,8 +190,13 @@ class UserInfoView(LoginRequiredViewMixin,View):
         #根据商品id查询商品对象
         # skus = GoodsSKU.objects.filter(id__in=sku_ids)
         for sku_id in sku_ids:
-            sku = GoodsSKU.objects.get(id=int(sku_id))
-            skus.append(sku)
+            # try:
+                sku = GoodsSKU.objects.get(id=int(sku_id))
+                print(sku)
+                skus.append(sku)
+            # except:
+            #     pass
+
 
         # 查询登陆用户的最新地址
         try:

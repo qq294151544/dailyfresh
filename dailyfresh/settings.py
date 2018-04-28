@@ -43,6 +43,7 @@ INSTALLED_APPS = (
     'apps.goods',  # 商品模块
     'apps.orders',  # 订单模块
     'apps.cart',  # 购物车模块
+    'haystack', # 使用haystack全文检索框架
 )
 TINYMCE_DEFAULT_CONFIG = {
     'theme': 'advanced',  # 丰富样式
@@ -144,3 +145,17 @@ LOGIN_URL = '/users/login'
 
 # 指定使用自定的义文件储存类
 DEFAULT_FILE_STORAGE = 'utils.fdfs.storage.FdfsStorage'
+
+HAYSTACK_CONNECTIONS = {
+    'default': {
+        # # 使用whoosh搜索引擎
+        # 'ENGINE': 'haystack.backends.whoosh_backend.WhooshEngine',
+        # 使用whoosh搜索引擎(使用jiebar中文分词工具)
+        'ENGINE': 'haystack.backends.whoosh_cn_backend.WhooshEngine',
+        # 指定生成的索引库保存在哪个目录下
+        'PATH': os.path.join(BASE_DIR, 'whoosh_index'),
+    }
+}
+
+# 当添加、修改、删除了数据时，自动生成索引
+HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'

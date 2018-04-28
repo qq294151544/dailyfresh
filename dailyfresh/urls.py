@@ -22,6 +22,10 @@ urlpatterns = [
     url(r'^cart/', include('apps.cart.urls',namespace='cart')),
     url(r'^orders/', include('apps.orders.urls',namespace='orders')),
     url(r'^', include('apps.goods.urls', namespace='goods')),
+
     #使用第三方的富文本编辑器
     url(r'^tinymce/',include('tinymce.urls')),
+    #搜索引擎
+    url(r'^search/',include('haystack.urls'))
+
 ]

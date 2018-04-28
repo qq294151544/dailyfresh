@@ -1,6 +1,8 @@
 from django.contrib import admin
 
 # Register your models here.
+from django.core.cache import cache
+
 from apps.goods.models import *
 from celery_tasks.tasks import *
 
@@ -11,12 +13,15 @@ class BaseAdmin(admin.ModelAdmin):
         super().save_model(request,obj,form,change)
         print('save_model: %s' % obj)
         generate_static_index_page.delay()
+        # 修改了数据库数据就需要删除缓存
+        cache.delete('index_page_data')
 
     def delete_model(self, request, obj):
         '''管理后台删除了一条数据后调用'''
         super().delete_model(request,obj)
         print('delete_model: %s' % obj)
         generate_static_index_page.delay()
+        cache.delete('index_page_data')
 
 
 class GoodsCategoryAdmin(BaseAdmin):
